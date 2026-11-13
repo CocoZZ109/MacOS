@@ -6,20 +6,17 @@ jobs:
   vm:
     runs-on: macos-15
     steps:
-      - name: Set runner password
-        continue-on-error: true
+      - name: Create VNC user
         env:
           VNCPASS: ${{ secrets.VNC_PASS }}
         run: |
-          sudo dscl . -passwd /Users/runner "" "$VNCPASS" || \
-          sudo sysadminctl -resetPasswordFor runner -newPassword "$VNCPASS" -adminUser runner -adminPassword "" || \
-          echo "password not changed"
+          sudo sysadminctl -addUser vncuser -fullName "VNC User" -password "$VNCPASS" -admin
       - name: Enable VNC
         env:
           VNCPASS: ${{ secrets.VNC_PASS }}
         run: |
           K=/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart
-          sudo $K -activate -configure -access -on -restart -agent -privs -all
+          sudo $K -activate -configure -access -on -allowAccessFor -allUsers -privs -all -restart -agent
           sudo $K -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNCPASS"
           sudo $K -restart -agent
       - name: Install noVNC
