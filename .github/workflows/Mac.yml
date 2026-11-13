@@ -4,15 +4,22 @@ on:
   workflow_dispatch:
 jobs:
   vm:
-    runs-on: macos-18
+    runs-on: macos-14
     steps:
-      - uses: tailscale/github-action@v3
-        with:
-          authkey: ${{ secrets.TS_AUTHKEY }}
-          hostname: mac-vnc
-      - run: |
-          sudo dscl . -passwd /Users/runner "${{ secrets.VNC_PASS }}"
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on -restart -agent -privs -all
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "${{ secrets.VNC_PASS }}"
-      - run: tailscale ip -4
-      - run: sleep 21000
+      - name: Enable VNC
+        env:
+          VNCPASS: ${{ secrets.VNC_PASS }}
+        run: |
+          K=/System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart
+          sudo $K -activate -configure -access -on -restart -agent -privs -all
+          sudo $K -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$VNCPASS"
+          sudo $K -restart -agent
+      - name: Install noVNC
+        run: |
+          pip3 install --break-system-packages websockify
+          git clone --depth 1 https://github.com/novnc/noVNC.git
+          nohup python3 -m websockify --web noVNC 6080 localhost:5900 > /dev/null 2>&1 &
+      - name: Tunnel
+        run: |
+          brew install cloudflared
+          cloudflared tunnel --url http://localhost:6080
