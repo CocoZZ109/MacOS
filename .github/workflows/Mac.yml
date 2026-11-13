@@ -7,9 +7,13 @@ jobs:
     runs-on: macos-15
     steps:
       - name: Set runner password
+        continue-on-error: true
         env:
           VNCPASS: ${{ secrets.VNC_PASS }}
-        run: sudo dscl . -passwd /Users/runner "$VNCPASS"
+        run: |
+          sudo dscl . -passwd /Users/runner "" "$VNCPASS" || \
+          sudo sysadminctl -resetPasswordFor runner -newPassword "$VNCPASS" -adminUser runner -adminPassword "" || \
+          echo "password not changed"
       - name: Enable VNC
         env:
           VNCPASS: ${{ secrets.VNC_PASS }}
