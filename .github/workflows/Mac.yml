@@ -6,6 +6,10 @@ jobs:
   vm:
     runs-on: macos-15
     steps:
+      - name: Set runner password
+        env:
+          VNCPASS: ${{ secrets.VNC_PASS }}
+        run: sudo dscl . -passwd /Users/runner "$VNCPASS"
       - name: Enable VNC
         env:
           VNCPASS: ${{ secrets.VNC_PASS }}
